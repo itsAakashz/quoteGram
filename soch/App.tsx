@@ -106,6 +106,16 @@ const HomeScreen = () => {
     }
   };
 
+  const shareQuote = async (quote: string) => {
+    try {
+      await Share.share({
+        message: quote,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share the quote.');
+    }
+  };
+
   const addToFavorites = async () => {
     const favorite = { quote, author };
     try {
@@ -134,6 +144,8 @@ const HomeScreen = () => {
           <View style={styles.buttonsContainer}>
             <Button title="New Quote" onPress={fetchQuote} />
             <Button title="Add to Favorites" onPress={addToFavorites} />
+            <Button title="Share" onPress={() => shareQuote(quote)} />
+
           </View>
         </ScrollView>
       </View>
@@ -171,6 +183,17 @@ const FavoritesScreen = () => {
     }
   };
 
+  const removeFromFavorites = async (quoteToRemove: string) => {
+    try {
+      const updatedFavorites = favorites.filter(fav => fav.quote !== quoteToRemove);
+      await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+      setFavorites(updatedFavorites);
+      // Alert.alert('Removed', 'Quote removed from favorites');
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+    }
+  };
+
   useEffect(() => {
     loadFavorites();
   }, []);
@@ -187,6 +210,7 @@ const FavoritesScreen = () => {
             <View style={styles.favButtonsContainer}>
               <Button title="Share" onPress={() => shareQuote(fav.quote)} />
               <Button title="Copy" onPress={() => copyToClipboard(fav.quote)} />
+              <Button title="Remove" onPress={() => removeFromFavorites(fav.quote)} />
             </View>
           </View>
         ))

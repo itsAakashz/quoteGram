@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, ScrollView, Alert, Share, ImageBackground, TouchableOpacity, Clipboard } from 'react-native';
+import { View, Text, Button, StyleSheet, ScrollView, Alert, Share, ImageBackground, Clipboard, Linking, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import SelectDropdown from 'react-native-select-dropdown';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import axios from 'axios';
-import Icon from 'react-native-vector-icons/Ionicons';
 
 // Array of quote categories
 const DATA = [
@@ -74,15 +74,9 @@ const DATA = [
   { id: 64, genre: "money" },
   { id: 65, genre: "morning" },
   { id: 66, genre: "movies" },
-  { id: 67, genre: "success" }
+  { id: 67, genre: "success" },
+
 ];
-
-
-
-const getRandomCategory = (): string => {
-  const randomIndex = Math.floor(Math.random() * DATA.length);
-  return DATA[randomIndex].genre;
-};
 
 const apiKey = 'TNgDki6oXSi4eguSUorhXw==7dfMvY9AFepEf9Y7';
 
@@ -90,9 +84,9 @@ const apiKey = 'TNgDki6oXSi4eguSUorhXw==7dfMvY9AFepEf9Y7';
 const HomeScreen = () => {
   const [quote, setQuote] = useState<string>('');
   const [author, setAuthor] = useState<string>('');
+  const [selectedGenre, setSelectedGenre] = useState<string>('success');
 
-  const fetchQuote = async () => {
-    const category = getRandomCategory();
+  const fetchQuote = async (category: string) => {
     try {
       const response = await axios.get(`https://api.api-ninjas.com/v1/quotes?category=${category}`, {
         headers: { 'X-Api-Key': apiKey }
@@ -130,8 +124,8 @@ const HomeScreen = () => {
   };
 
   useEffect(() => {
-    fetchQuote();
-  }, []);
+    fetchQuote(selectedGenre);
+  }, [selectedGenre]);
 
   return (
     <ImageBackground source={require('./resources/bc.jpg')} style={styles.backgroundImage}>
@@ -142,11 +136,33 @@ const HomeScreen = () => {
             <Text style={styles.authorText}>— {author}</Text>
           </View>
           <View style={styles.buttonsContainer}>
-            <Button title="New Quote" onPress={fetchQuote} />
+            <Button title="New Quote" onPress={() => fetchQuote(selectedGenre)} />
+            <Text>  </Text>
             <Button title="Add to Favorites" onPress={addToFavorites} />
+            <Text>  </Text>
             <Button title="Share" onPress={() => shareQuote(quote)} />
-
           </View>
+          <SelectDropdown
+            data={DATA.map(item => item.genre)}
+            onSelect={(selectedItem) => {
+              setSelectedGenre(selectedItem);
+            }}
+            renderButton={(selectedItem, index) => {
+              return (
+                <View style={styles.dropdownBtnStyle}>
+                  <Text style={styles.dropdownBtnTxtStyle}>{selectedItem || "Select a genre"}</Text>
+                </View>
+              );
+            }}
+            renderItem={(item, index) => {
+              return (
+                <View style={styles.dropdownRowStyle}>
+                  <Text style={styles.dropdownRowTxtStyle}>{item}</Text>
+                </View>
+              );
+            }}
+            dropdownStyle={styles.dropdownStyle}
+          />
         </ScrollView>
       </View>
     </ImageBackground>
@@ -188,7 +204,7 @@ const FavoritesScreen = () => {
       const updatedFavorites = favorites.filter(fav => fav.quote !== quoteToRemove);
       await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
       setFavorites(updatedFavorites);
-      // Alert.alert('Removed', 'Quote removed from favorites');
+      Alert.alert('Removed', 'Quote removed from favorites');
     } catch (error) {
       console.error('Error removing favorite:', error);
     }
@@ -199,114 +215,176 @@ const FavoritesScreen = () => {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.favoritesTitle}>Your Favorite Quotes:</Text>
-      {favorites.length === 0 ? (
-        <Text style={styles.emptyText}>No favorite quotes added yet.</Text>
-      ) : (
-        favorites.map((fav, index) => (
-          <View key={index} style={styles.favoriteQuoteContainer}>
-            <Text style={styles.favoriteQuote}>"{fav.quote}" — {fav.author}</Text>
-            <View style={styles.favButtonsContainer}>
-              <Button title="Share" onPress={() => shareQuote(fav.quote)} />
-              <Button title="Copy" onPress={() => copyToClipboard(fav.quote)} />
-              <Button title="Remove" onPress={() => removeFromFavorites(fav.quote)} />
+    <ImageBackground source={require('./resources/bc.jpg')} style={styles.backgroundImage}>
+      <View style={styles.overlay}>
+        <ScrollView contentContainerStyle={styles.container}>
+          {favorites.map((favorite, index) => (
+            <View key={index} style={styles.quoteContainer}>
+              <Text style={styles.quoteText}>"{favorite.quote}"</Text>
+              <Text style={styles.authorText}>— {favorite.author}</Text>
+              <View style={styles.buttonsContainer}>
+                <Button title="Copy" onPress={() => copyToClipboard(favorite.quote)} />
+                <Button title="Share" onPress={() => shareQuote(favorite.quote)} />
+                <Button title="Remove" onPress={() => removeFromFavorites(favorite.quote)} />
+              </View>
             </View>
+          ))}
+          <View style={styles.container}>
+            <Text style={styles.heading}>About the App</Text>
+
+            <Text style={styles.subheading}>Developed & Designed by Aakash Gupta</Text>
+            <Text style={styles.paragraph}>
+              Aakash Gupta is passionate about creating simple, intuitive apps that bring value to users. This app was developed with the goal of making it easy for people to access uplifting quotes anytime, anywhere.
+            </Text>
+
+            <Text style={styles.subheading}>Follow me on Social Media:</Text>
+
+            <Text style={styles.link} onPress={() => Linking.openURL('https://www.linkedin.com/in/Aakashuuu')}>
+              LinkedIn: Aakash Gupta
+            </Text>
+
+            <Text style={styles.link} onPress={() => Linking.openURL('mailto:itsAakashz@outlook.com')}>
+              Email: itsAakashz@outlook.com
+            </Text>
+
+            <Text style={styles.link} onPress={() => Linking.openURL('https://www.instagram.com/itsAakashz')}>
+              Instagram: @itsAakashz
+            </Text>
+            <Text style={styles.link} onPress={() => Linking.openURL('https://www.github.com/itsAakashz')}>
+              Github: @itsAakashz
+            </Text>
+
+            <Text style={styles.paragraph}>
+              For feedback and inquiries, feel free to reach out through social media or email.
+            </Text>
           </View>
-        ))
-      )}
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 };
 
-// Navigation Setup
 const Tab = createBottomTabNavigator();
 
 const App = () => {
   return (
     <NavigationContainer>
-      <Tab.Navigator>
+      <Tab.Navigator screenOptions={{
+        tabBarInactiveBackgroundColor: '#00061f',
+        tabBarActiveBackgroundColor: '#803f03',
+      }} >
         <Tab.Screen name="Home" component={HomeScreen}
-         
-         options={
-          { headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Icon name="home-outline" color={color} size={size} />
-          ),
-        }}   />
-        <Tab.Screen name="Favorites" component={FavoritesScreen} 
-        options={{
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Icon name="star-outline" color={color} size={size} />
-          ),
-        }}  />
+
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <Text>🏠</Text>
+            ),
+
+          }} />
+        <Tab.Screen name="Favorites" component={FavoritesScreen}
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <Text>💞</Text>
+            ),
+
+          }} />
       </Tab.Navigator>
     </NavigationContainer>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
+    resizeMode: 'cover',
   },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-  },
-  container: {
-    flexGrow: 1,
-    padding: 16,
   },
   quoteContainer: {
     marginVertical: 20,
-    paddingHorizontal: 10,
-    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 10,
   },
   quoteText: {
-    fontSize: 28,
+    color: 'black',
+    fontSize: 18,
+    fontWeight: '400',
     fontStyle: 'italic',
-    textAlign: 'center',
-    color: '#fff',
     marginBottom: 10,
+    textAlign: 'center',
   },
   authorText: {
-    fontSize: 18,
-    textAlign: 'center',
-    color: '#ccc',
+    color: 'black',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
   buttonsContainer: {
-    flex:1,
-    flexDirection:'row',
-    marginVertical: 140,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  favoritesTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  favoriteQuoteContainer: {
-    marginBottom: 20,
-  },
-  favoriteQuote: {
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  favButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginTop: 10,
   },
+  dropdownBtnStyle: {
+    margin: 10,
+    alignItems: 'center',
+    width: '60%',
+    height: 45,
+    backgroundColor: '#444',
+    borderRadius: 8,
+  },
+  dropdownBtnTxtStyle: {
+    color: '#FFF',
+    textAlign: 'center',
+    marginTop: 11
+  },
+  dropdownStyle: {
+    backgroundColor: '#444',
+    height: 190,
+  },
+  dropdownRowStyle: {
+    backgroundColor: '#444',
+    borderBottomColor: '#C5C5C5',
+  },
+  dropdownRowTxtStyle: {
+    color: '#FFF',
+    textAlign: 'center',
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+  },
+  subheading: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  paragraph: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  link: {
+    fontSize: 16,
+    color: '#1DA1F2',
+    marginBottom: 10,
+    textDecorationLine: 'none'
+  }
 });
 
 export default App;
